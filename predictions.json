@@ -1,17 +1,23 @@
 {
   "build": "pattern-forge",
-  "what": "The core of Pattern organs #5: propose patterns from a domain's cases, keep only those that predict HELD-OUT cases graded by a deterministic rule (balanced accuracy). A pattern survives only if it generalises.",
+  "what": "Pattern organs #5: propose patterns from a domain's cases, keep only those that predict HELD-OUT cases graded by a rule (the forge), then BREED survivors into compound patterns that generalise better (the improve-itself half). A pattern survives only if it generalises.",
   "sealed_before_measurement": true,
   "claims": [
     { "id": "P1", "text": "The real signal pattern generalises — it scores perfectly on held-out data", "check": "signalTestBA === 1" },
     { "id": "P2", "text": "A non-generalising pattern is REJECTED on the held-out split", "check": "noiseRejected >= 1" },
     { "id": "P3", "text": "Overfit is caught — on a domain with no real pattern, NOTHING clears the bar", "check": "overfitSurvivors === 0" },
-    { "id": "P4", "text": "The signal is the only high-confidence survivor (held-out BA > 0.9)", "check": "highConfidenceSurvivors === 1" }
+    { "id": "P4", "text": "The signal is the only high-confidence survivor (held-out BA > 0.9)", "check": "highConfidenceSurvivors === 1" },
+    { "id": "P5", "text": "Breeding IMPROVES on held-out beyond the best single feature (selection on train, judged on held-out)", "check": "breedImproved === true && breedChampionTestBA > breedSingleBestTestBA" },
+    { "id": "P6", "text": "The bred champion is the true 2-term conjunction and it generalises (held-out 1.0)", "check": "breedChampionTerms === 2 && breedChampionTestBA === 1" }
   ],
   "expected": {
     "signalTestBA": 1,
     "noiseRejected": 1,
     "highConfidenceSurvivors": 1,
-    "overfitSurvivors": 0
+    "overfitSurvivors": 0,
+    "breedSingleBestTestBA": 0.8269,
+    "breedChampionTestBA": 1,
+    "breedChampionTerms": 2,
+    "breedImproved": true
   }
 }

@@ -58,6 +58,12 @@
   </section>
 
   <section>
+    <h2>Improves itself — breeding compound patterns</h2>
+    <p class="sub">Domain C: the signal is a <em>conjunction</em> (x0 high <strong>AND</strong> x1 high) that no single feature catches. Breeding ANDs patterns across generations — selecting on train, judged on held-out — and finds the true two-term rule.</p>
+    <div id="breed"></div>
+  </section>
+
+  <section>
     <h2>The sealed claims</h2>
     <p class="sub">Pre-registered in <code>predictions.json</code> before measurement; checked live against the kernel now.</p>
     <ul class="claims" id="claims"></ul>
@@ -73,9 +79,11 @@
 
 <script type="module">
   import { forge } from './pattern.mjs';
+  import { breed } from './breed.mjs';
 
   const signalDomain = (n = 30) => { const c = []; for (let i = 0; i < n; i++) c.push({ x: [i % 10, (i * 7) % 10, (i * 3 + 1) % 10], y: i % 10 >= 5 ? 1 : 0 }); return c; };
   const overfitDomain = (n = 30) => { const c = []; for (let i = 0; i < n; i++) { const y = i % 2; c.push({ x: [i % 3, i < 20 ? y : 1 - y], y }); } return c; };
+  const andDomain = (n = 100) => { const c = []; for (let i = 0; i < n; i++) c.push({ x: [i % 10, Math.floor(i / 10), (i * 7) % 10], y: (i % 10 >= 5 && Math.floor(i / 10) >= 5) ? 1 : 0 }); return c; };
 
   const fmtStump = (s) => `x[${s.feature}] ${s.dir === -1 ? '≤' : '≥'} ${s.threshold}`;
   const ba = (v) => `<span class="bar" style="width:${Math.round(v * 60)}px"></span> <span class="n">${v.toFixed(3)}</span>`;
@@ -94,6 +102,18 @@
   document.getElementById('overfit-summary').innerHTML =
     `<strong>${rB.survivors.length} survivors</strong> — the forge refuses to certify a pattern that only fit the training data.`;
 
+  // breeding — the improve-itself half
+  const rC = breed(andDomain(100), { generations: 3, keep: 8, maxTerms: 3 });
+  const champStr = rC.champion ? rC.champion.stumps.map((s) => `x[${s.feature}] ${s.dir === -1 ? '≤' : '≥'} ${s.threshold}`).join(' AND ') : '—';
+  document.getElementById('breed').innerHTML = `
+    <div class="rank" style="display:flex;flex-direction:column;gap:6px">
+      <div class="rrow" style="display:grid;grid-template-columns:1.6fr 3fr auto;gap:10px;align-items:center">
+        <span>best single feature</span><span class="bar" style="width:${rC.singleBestTestBA * 100}%"></span><span class="n">held-out ${rC.singleBestTestBA.toFixed(3)}</span></div>
+      <div class="rrow" style="display:grid;grid-template-columns:1.6fr 3fr auto;gap:10px;align-items:center">
+        <span>bred compound</span><span class="bar" style="width:${rC.champion.testBA * 100}%;background:var(--good)"></span><span class="n">held-out ${rC.champion.testBA.toFixed(3)}</span></div>
+    </div>
+    <p class="sub" style="margin-top:12px">Champion: <code>${champStr}</code> — ${rC.champion.terms} terms, train ${rC.champion.trainBA.toFixed(3)} = held-out ${rC.champion.testBA.toFixed(3)} (no overfit). ${rC.improvedHeldOut ? 'Breeding <strong>improved</strong> held-out over every single feature.' : 'No improvement over a single feature here.'}</p>`;
+
   // derived facts + self-check
   const sig = rA.survivors.find((s) => s.feature === 0);
   const m = {
@@ -101,21 +121,26 @@
     noiseRejected: rA.proposed.filter((s) => s.feature !== 0 && s.testBA < rA.bar).length,
     highConfidenceSurvivors: rA.survivors.filter((s) => s.testBA > 0.9).length,
     overfitSurvivors: rB.survivors.length,
+    breedSingleBestTestBA: rC.singleBestTestBA,
+    breedChampionTestBA: rC.champion ? rC.champion.testBA : 0,
+    breedChampionTerms: rC.champion ? rC.champion.terms : 0,
+    breedImproved: rC.improvedHeldOut,
   };
   let allPass = true;
   try {
     const preds = await fetch('./predictions.json').then((r) => r.json());
-    const holds = (expr) => { const { signalTestBA, noiseRejected, highConfidenceSurvivors, overfitSurvivors } = m; try { return !!eval(expr); } catch { return false; } };
+    const holds = (expr) => { const { signalTestBA, noiseRejected, highConfidenceSurvivors, overfitSurvivors, breedSingleBestTestBA, breedChampionTestBA, breedChampionTerms, breedImproved } = m; try { return !!eval(expr); } catch { return false; } };
     document.getElementById('claims').innerHTML = preds.claims.map((c) => {
       const p = holds(c.check); if (!p) allPass = false;
       return `<li><span class="ok">${p ? '✓' : '✗'}</span> ${c.text} <code>${c.check}</code></li>`;
     }).join('');
   } catch { document.getElementById('claims').innerHTML = '<li class="note">predictions.json not reachable here — the tables above are still live from the kernel.</li>'; }
 
-  const ok = m.signalTestBA === 1 && m.noiseRejected >= 1 && m.overfitSurvivors === 0 && m.highConfidenceSurvivors === 1 && allPass;
+  const ok = m.signalTestBA === 1 && m.noiseRejected >= 1 && m.overfitSurvivors === 0 && m.highConfidenceSurvivors === 1
+             && m.breedImproved === true && m.breedChampionTestBA === 1 && allPass;
   const sc = document.getElementById('selfcheck');
   document.getElementById('sc').innerHTML = ok
-    ? `Self-check ✓ — re-derived from the kernel: the signal generalises (held-out BA ${m.signalTestBA}), overfit survivors ${m.overfitSurvivors}, a non-generalising pattern was rejected.`
+    ? `Self-check ✓ — re-derived from the kernel: the signal generalises (held-out BA ${m.signalTestBA}), overfit survivors ${m.overfitSurvivors}, and breeding improved held-out ${m.breedSingleBestTestBA} → ${m.breedChampionTestBA}.`
     : 'Self-check mismatch — do not trust this build.';
   if (!ok) sc.classList.add('bad');
 </script>

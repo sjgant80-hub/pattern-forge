@@ -12,13 +12,19 @@ jobs:
         with: { node-version: '22' }
       - name: Unit tests
         run: node --test
-      - name: Mutation gate — the kernel must be CLEAN
-        run: node tools/witness.mjs mutate pattern.mjs --test node --test
+      - name: Mutation gate — every kernel must be CLEAN
+        run: |
+          set -e
+          node tools/witness.mjs mutate pattern.mjs --test node --test
+          node tools/witness.mjs mutate breed.mjs --test node --test
       - name: Fuzz gate — the never-throw boundary
         run: |
           set -e
           for fn in splitCases predict balancedAccuracy proposeStumps forge; do
             node tools/witness.mjs fuzz pattern.mjs "$fn"
+          done
+          for fn in predictCompound baCompound breed; do
+            node tools/witness.mjs fuzz breed.mjs "$fn"
           done
       - name: Re-derive the sealed facts and check against predictions.json
         run: node ci-verify.mjs

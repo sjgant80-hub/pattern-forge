@@ -1,0 +1,7 @@
+[
+  {
+    "mutation": "> → >=",
+    "snippet": "if (!champion || top.ba > champion.trainBA) {",
+    "reason": "Equivalent mutant: the champion is the best-train compound. A later generation's top with EQUAL train BA is the SAME compound re-found (it persists in the population across generations), so updating-on-tie replaces the champion with one of identical stumps, trainBA and testBA. The reported champion is unchanged, so no test can distinguish > from >=."
+  }
+]
