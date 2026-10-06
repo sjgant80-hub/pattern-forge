@@ -71,6 +71,12 @@
   </section>
 
   <section>
+    <h2>The observer loop — it learns which forms generalise</h2>
+    <p class="sub">The observer watches the run above, learns that <em>comparison</em> rules generalise where stumps don't, and reprioritises the proposals. The generalising rule then surfaces earlier — fewer held-out checks before a winner.</p>
+    <div id="observer" class="rank"></div>
+  </section>
+
+  <section>
     <h2>The sealed claims</h2>
     <p class="sub">Pre-registered in <code>predictions.json</code> before measurement; checked live against the kernel now.</p>
     <ul class="claims" id="claims"></ul>
@@ -87,7 +93,8 @@
 <script type="module">
   import { forge } from './pattern.mjs';
   import { breed } from './breed.mjs';
-  import { validate } from './propose.mjs';
+  import { validate, baRule } from './propose.mjs';
+  import { observe, reprioritise, firstSurvivorPosition } from './observer.mjs';
 
   const signalDomain = (n = 30) => { const c = []; for (let i = 0; i < n; i++) c.push({ x: [i % 10, (i * 7) % 10, (i * 3 + 1) % 10], y: i % 10 >= 5 ? 1 : 0 }); return c; };
   const overfitDomain = (n = 30) => { const c = []; for (let i = 0; i < n; i++) { const y = i % 2; c.push({ x: [i % 3, i < 20 ? y : 1 - y], y }); } return c; };
@@ -126,6 +133,7 @@
 
   // the local model's sealed proposals, validated on held-out
   let rD = null;
+  let obs = { best: 'none', unguided: 0, guided: 0 };
   try {
     const prop = await fetch('./proposals.json').then((r) => r.json());
     rD = validate(prop.rules, compareDomain(100), { holdoutFrac: 1 / 3, bar: 0.9 });
@@ -136,6 +144,19 @@
     document.getElementById('llm-summary').innerHTML = champ
       ? `The model proposed ${rD.graded.length} rules; <strong>${rD.survivors.length}</strong> cleared the held-out bar — <code>${ruleStr(champ.rule)}</code> at held-out ${champ.testBA.toFixed(3)}. Every proposed threshold rule failed: a comparison between features is a form no single stump can express.`
       : `The model proposed ${rD.graded.length} rules; none cleared the held-out bar.`;
+
+    // observer loop: learn from this run, reprioritise, measure how early the survivor is found
+    const prior = observe([{ bar: rD.bar, graded: rD.graded }]);
+    const grade = (r) => baRule(r, compareDomain(100));
+    obs = {
+      best: Object.keys(prior).reduce((a, b) => (prior[b] > (prior[a] ?? -1) ? b : a), 'none'),
+      unguided: firstSurvivorPosition(prop.rules, grade, 0.9),
+      guided: firstSurvivorPosition(reprioritise(prop.rules, prior), grade, 0.9),
+    };
+    document.getElementById('observer').innerHTML =
+      `<div class="rrow" style="display:grid;grid-template-columns:1.9fr 3fr auto;gap:10px;align-items:center"><span>unguided (model's order)</span><span class="bar" style="width:${obs.unguided * 18}%;background:var(--muted)"></span><span class="n">survivor at position ${obs.unguided}</span></div>
+       <div class="rrow" style="display:grid;grid-template-columns:1.9fr 3fr auto;gap:10px;align-items:center"><span>observer-reprioritised</span><span class="bar" style="width:${obs.guided * 18}%"></span><span class="n">survivor at position ${obs.guided}</span></div>
+       <p class="sub" style="margin-top:12px">The observer learned <code>${obs.best}</code> is the form that generalises and moved it first — the winner surfaces at position ${obs.guided} instead of ${obs.unguided}.</p>`;
   } catch { document.getElementById('llm-summary').textContent = 'proposals.json not reachable here.'; }
 
   // derived facts + self-check
@@ -154,11 +175,14 @@
     llmChampionKind: rD && rD.survivors[0] ? rD.survivors[0].rule.kind : 'none',
     llmChampionTestBA: rD && rD.survivors[0] ? rD.survivors[0].testBA : 0,
     llmBestStumpTestBA: rD ? rD.graded.filter((g) => g.rule.kind === 'stump').reduce((mx, g) => Math.max(mx, g.testBA), 0) : 1,
+    observerBestKind: obs.best,
+    observerUnguidedPos: obs.unguided,
+    observerGuidedPos: obs.guided,
   };
   let allPass = true;
   try {
     const preds = await fetch('./predictions.json').then((r) => r.json());
-    const holds = (expr) => { const { signalTestBA, noiseRejected, highConfidenceSurvivors, overfitSurvivors, breedSingleBestTestBA, breedChampionTestBA, breedChampionTerms, breedImproved, llmProposed, llmSurvivors, llmChampionKind, llmChampionTestBA, llmBestStumpTestBA } = m; try { return !!eval(expr); } catch { return false; } };
+    const holds = (expr) => { const { signalTestBA, noiseRejected, highConfidenceSurvivors, overfitSurvivors, breedSingleBestTestBA, breedChampionTestBA, breedChampionTerms, breedImproved, llmProposed, llmSurvivors, llmChampionKind, llmChampionTestBA, llmBestStumpTestBA, observerBestKind, observerUnguidedPos, observerGuidedPos } = m; try { return !!eval(expr); } catch { return false; } };
     document.getElementById('claims').innerHTML = preds.claims.map((c) => {
       const p = holds(c.check); if (!p) allPass = false;
       return `<li><span class="ok">${p ? '✓' : '✗'}</span> ${c.text} <code>${c.check}</code></li>`;
@@ -167,10 +191,11 @@
 
   const ok = m.signalTestBA === 1 && m.noiseRejected >= 1 && m.overfitSurvivors === 0 && m.highConfidenceSurvivors === 1
              && m.breedImproved === true && m.breedChampionTestBA === 1
-             && m.llmSurvivors === 1 && m.llmChampionKind === 'compare' && m.llmChampionTestBA === 1 && allPass;
+             && m.llmSurvivors === 1 && m.llmChampionKind === 'compare' && m.llmChampionTestBA === 1
+             && obs.best === 'compare' && obs.guided === 1 && obs.guided < obs.unguided && allPass;
   const sc = document.getElementById('selfcheck');
   document.getElementById('sc').innerHTML = ok
-    ? `Self-check ✓ — re-derived live: the signal generalises (BA ${m.signalTestBA}), breeding improved ${m.breedSingleBestTestBA} → ${m.breedChampionTestBA}, and the local model's one generalising proposal (${m.llmChampionKind}) survived held-out at ${m.llmChampionTestBA}.`
+    ? `Self-check ✓ — re-derived live: the signal generalises (BA ${m.signalTestBA}), breeding improved ${m.breedSingleBestTestBA} → ${m.breedChampionTestBA}, the local model's one generalising proposal (${m.llmChampionKind}) survived held-out at ${m.llmChampionTestBA}, and the observer moved the winner from position ${obs.unguided} to ${obs.guided}.`
     : 'Self-check mismatch — do not trust this build.';
   if (!ok) sc.classList.add('bad');
 </script>

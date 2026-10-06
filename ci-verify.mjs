@@ -2,7 +2,8 @@
 // match predictions.json exactly. predictions.json is committed before run.json; CI recomputes here.
 import { forge } from './pattern.mjs';
 import { breed } from './breed.mjs';
-import { validate } from './propose.mjs';
+import { validate, baRule } from './propose.mjs';
+import { observe, bestKind, reprioritise, firstSurvivorPosition } from './observer.mjs';
 import { readFileSync } from 'node:fs';
 
 // the comparison domain the local model proposed rules for: y = (x0 > x1); x2 noise
@@ -42,6 +43,11 @@ export function derive() {
   const v = validate(proposals.rules, compareDomain(100), { holdoutFrac: 1 / 3, bar: 0.9 });
   const champ = v.survivors[0];
   const bestStump = v.graded.filter((g) => g.rule.kind === 'stump').reduce((m, g) => Math.max(m, g.testBA), 0);
+  // observer loop: learn a prior from the run, reprioritise, measure how early the survivor is found
+  const prior = observe([{ bar: v.bar, graded: v.graded }]);
+  const grade = (rule) => baRule(rule, compareDomain(100));
+  const unguidedPos = firstSurvivorPosition(proposals.rules, grade, 0.9);
+  const guidedPos = firstSurvivorPosition(reprioritise(proposals.rules, prior), grade, 0.9);
   return {
     signalTestBA: sig ? r4(sig.testBA) : 0,
     noiseRejected: r.proposed.filter((s) => s.feature !== 0 && s.testBA < r.bar).length,
@@ -56,6 +62,9 @@ export function derive() {
     llmChampionKind: champ ? champ.rule.kind : 'none',
     llmChampionTestBA: champ ? champ.testBA : 0,
     llmBestStumpTestBA: r4(bestStump),
+    observerBestKind: bestKind(prior),
+    observerUnguidedPos: unguidedPos,
+    observerGuidedPos: guidedPos,
   };
 }
 
@@ -67,7 +76,7 @@ if (typeof process !== 'undefined' && process.argv && process.argv[1] && process
     if (m[k] !== v) { console.error(`MISMATCH ${k}: expected ${v}, got ${m[k]}`); fail++; }
   }
   const holds = (expr) => {
-    const { signalTestBA, noiseRejected, highConfidenceSurvivors, overfitSurvivors, breedSingleBestTestBA, breedChampionTestBA, breedChampionTerms, breedImproved, llmProposed, llmSurvivors, llmChampionKind, llmChampionTestBA, llmBestStumpTestBA } = m;
+    const { signalTestBA, noiseRejected, highConfidenceSurvivors, overfitSurvivors, breedSingleBestTestBA, breedChampionTestBA, breedChampionTerms, breedImproved, llmProposed, llmSurvivors, llmChampionKind, llmChampionTestBA, llmBestStumpTestBA, observerBestKind, observerUnguidedPos, observerGuidedPos } = m;
     // eslint-disable-next-line no-eval
     try { return !!eval(expr); } catch { return false; }
   };

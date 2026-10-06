@@ -8,7 +8,7 @@ It then **breeds** survivors into compound patterns, and validates the **local m
 
 ## Proof-of-play
 
-- `pattern.mjs` (find) + `breed.mjs` (improve) + `propose.mjs` (validate the local model's proposals) — pure kernels. **27 unit tests**, **mutation gate CLEAN** (pattern.mjs & propose.mjs score 1.0; breed.mjs 1 argued-equivalent baselined), **fuzz gate CLEAN**.
+- `pattern.mjs` (find) + `breed.mjs` (improve) + `propose.mjs` (validate the local model's proposals) + `observer.mjs` (learn which forms generalise) — pure kernels. **33 unit tests**, **mutation gate CLEAN** (pattern/propose/observer score 1.0; breed.mjs 1 argued-equivalent baselined), **fuzz gate CLEAN**.
 - **Sealed before measurement:** `predictions.json` (claims) before `run.json` (measured). `ci-verify.mjs` re-derives on GitHub's runner and fails on drift.
 - CI: `.github/workflows/ci.yml` (`proof-of-play`): tests + mutation + fuzz + re-derive.
 
@@ -22,9 +22,10 @@ It then **breeds** survivors into compound patterns, and validates the **local m
 | overfit domain survivors | **0** (nothing certified) |
 | breeding: best single vs bred compound (held-out) | **0.827 → 1.0** (finds the conjunction) |
 | local model proposes x0>x1; held-out keeps it (stumps fail) | **1.0** vs best stump 0.77 |
+| observer reprioritises; winner found at | **position 1** (vs 3 unguided) |
 
 ## Honest scope
 
-This ships the held-out survival test (the anti-theatre heart), the **self-improvement step** (breeding), and the **sovereign LLM-proposal step** (the local model proposes richer rule forms; the held-out gate keeps only what generalises). The remaining #5 stages — the observer loop, and a pattern book + minted small model + FallWorld Deck card — are flagged, not yet claimed.
+This ships the held-out survival test (the anti-theatre heart), the **self-improvement step** (breeding), and the **sovereign LLM-proposal step** (the local model proposes; the gate keeps what generalises), and the **observer loop** (it learns which rule forms generalise and reprioritises future search). The remaining #5 stages — a pattern book + a minted small model + a FallWorld Deck card — are flagged, not yet claimed.
 
 Built by **Kar · AI-Native Solutions** (sjgant80-hub).
