@@ -13,7 +13,10 @@
     "llmSurvivors": 1,
     "llmChampionKind": "compare",
     "llmChampionTestBA": 1,
-    "llmBestStumpTestBA": 0.7684
+    "llmBestStumpTestBA": 0.7684,
+    "observerBestKind": "compare",
+    "observerUnguidedPos": 3,
+    "observerGuidedPos": 1
   },
   "claims": [
     {
@@ -69,8 +72,20 @@
       "text": "Every proposed threshold stump FAILS held-out — the win needed a richer rule form",
       "check": "llmBestStumpTestBA < 0.9",
       "pass": true
+    },
+    {
+      "id": "P10",
+      "text": "The observer loop learns which rule form generalises (compare) from the run it watched",
+      "check": "observerBestKind === 'compare'",
+      "pass": true
+    },
+    {
+      "id": "P11",
+      "text": "Observer-guided search surfaces the generalising rule EARLIER (position 1 vs 3 unguided)",
+      "check": "observerGuidedPos === 1 && observerUnguidedPos === 3 && observerGuidedPos < observerUnguidedPos",
+      "pass": true
     }
   ],
   "allPass": true,
-  "note": "Re-derived from pattern.mjs + breed.mjs + propose.mjs (validating the sealed local-model proposals); ci-verify.mjs re-checks on the runner."
+  "note": "Re-derived from pattern/breed/propose/observer kernels; ci-verify.mjs re-checks on the runner."
 }
