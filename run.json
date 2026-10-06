@@ -4,7 +4,11 @@
     "signalTestBA": 1,
     "noiseRejected": 1,
     "highConfidenceSurvivors": 1,
-    "overfitSurvivors": 0
+    "overfitSurvivors": 0,
+    "breedSingleBestTestBA": 0.8269,
+    "breedChampionTestBA": 1,
+    "breedChampionTerms": 2,
+    "breedImproved": true
   },
   "claims": [
     {
@@ -30,8 +34,20 @@
       "text": "The signal is the only high-confidence survivor (held-out BA > 0.9)",
       "check": "highConfidenceSurvivors === 1",
       "pass": true
+    },
+    {
+      "id": "P5",
+      "text": "Breeding IMPROVES on held-out beyond the best single feature (selection on train, judged on held-out)",
+      "check": "breedImproved === true && breedChampionTestBA > breedSingleBestTestBA",
+      "pass": true
+    },
+    {
+      "id": "P6",
+      "text": "The bred champion is the true 2-term conjunction and it generalises (held-out 1.0)",
+      "check": "breedChampionTerms === 2 && breedChampionTestBA === 1",
+      "pass": true
     }
   ],
   "allPass": true,
-  "note": "Re-derived from the sealed pattern.mjs; ci-verify.mjs re-checks on the runner."
+  "note": "Re-derived from the sealed pattern.mjs + breed.mjs; ci-verify.mjs re-checks on the runner."
 }
