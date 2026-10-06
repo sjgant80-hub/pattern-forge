@@ -8,7 +8,12 @@
     "breedSingleBestTestBA": 0.8269,
     "breedChampionTestBA": 1,
     "breedChampionTerms": 2,
-    "breedImproved": true
+    "breedImproved": true,
+    "llmProposed": 5,
+    "llmSurvivors": 1,
+    "llmChampionKind": "compare",
+    "llmChampionTestBA": 1,
+    "llmBestStumpTestBA": 0.7684
   },
   "claims": [
     {
@@ -37,7 +42,7 @@
     },
     {
       "id": "P5",
-      "text": "Breeding IMPROVES on held-out beyond the best single feature (selection on train, judged on held-out)",
+      "text": "Breeding IMPROVES on held-out beyond the best single feature",
       "check": "breedImproved === true && breedChampionTestBA > breedSingleBestTestBA",
       "pass": true
     },
@@ -46,8 +51,26 @@
       "text": "The bred champion is the true 2-term conjunction and it generalises (held-out 1.0)",
       "check": "breedChampionTerms === 2 && breedChampionTestBA === 1",
       "pass": true
+    },
+    {
+      "id": "P7",
+      "text": "The local model's proposals are validated on held-out; exactly one generalises",
+      "check": "llmProposed === 5 && llmSurvivors === 1",
+      "pass": true
+    },
+    {
+      "id": "P8",
+      "text": "The survivor is a feature-COMPARISON (x0>x1) no threshold stump can express, held-out 1.0",
+      "check": "llmChampionKind === 'compare' && llmChampionTestBA === 1",
+      "pass": true
+    },
+    {
+      "id": "P9",
+      "text": "Every proposed threshold stump FAILS held-out — the win needed a richer rule form",
+      "check": "llmBestStumpTestBA < 0.9",
+      "pass": true
     }
   ],
   "allPass": true,
-  "note": "Re-derived from the sealed pattern.mjs + breed.mjs; ci-verify.mjs re-checks on the runner."
+  "note": "Re-derived from pattern.mjs + breed.mjs + propose.mjs (validating the sealed local-model proposals); ci-verify.mjs re-checks on the runner."
 }
