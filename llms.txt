@@ -1,0 +1,10 @@
+# pattern-forge
+The defensible core of Pattern organs #5: propose patterns from a domain's labelled cases, keep ONLY
+those that predict a HELD-OUT split graded by balanced accuracy (a deterministic rule, never an LLM judge).
+A pattern survives only if it generalises; overfit patterns die on held-out. Kernel-backed, witnessed, sealed.
+
+- Live: https://sjgant80-hub.github.io/pattern-forge/
+- Source: https://github.com/sjgant80-hub/pattern-forge
+- Kernel: pattern.mjs (splitCases, predict, balancedAccuracy, proposeStumps, forge)
+- Facts: signal held-out BA=1, a noise pattern rejected, overfit survivors=0, 1 high-confidence survivor
+- Scope: core proven; LLM proposal, kard-evolve breeding, minted small model, Deck card are stages on top.

@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Pattern Forge</title>
+<meta name="description" content="Pattern organs #5 core: propose patterns from a domain's cases and keep only those that predict held-out cases graded by a deterministic rule. A pattern survives only if it generalises — re-derived live in your browser from the gated kernel." />
+<link rel="canonical" href="https://sjgant80-hub.github.io/pattern-forge/" />
+<script type="application/ld+json">
+{ "@context":"https://schema.org","@type":"SoftwareSourceCode","name":"pattern-forge",
+  "description":"The defensible core of Pattern organs: propose patterns from a domain's labelled cases, keep only those that predict held-out cases graded by balanced accuracy — never an LLM judge.",
+  "programmingLanguage":"JavaScript","codeRepository":"https://github.com/sjgant80-hub/pattern-forge",
+  "url":"https://sjgant80-hub.github.io/pattern-forge/","author":{"@type":"Person","name":"Kar (AI-Native Solutions, sjgant80-hub)"} }
+</script>
+<style>
+  :root { --bg:#f6f7fb; --panel:#fff; --ink:#141720; --muted:#5a6373; --line:#e3e7ef;
+    --accent:#3b5bdb; --accent-soft:#eaefff; --good:#1a7f4b; --good-soft:#e5f6ec; --bad:#c0392b; --bad-soft:#fdecea; --warn:#b4530a;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace; --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color-scheme:light; }
+  @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){ --bg:#0f1118; --panel:#161a24; --ink:#e8ebf2; --muted:#9aa3b4;
+    --line:#262c3a; --accent:#8aa0ff; --accent-soft:#1b2340; --good:#4cc98a; --good-soft:#10281c; --bad:#ff8a7a; --bad-soft:#2a1512; --warn:#e0923f; color-scheme:dark; } }
+  :root[data-theme="dark"]{ --bg:#0f1118; --panel:#161a24; --ink:#e8ebf2; --muted:#9aa3b4; --line:#262c3a; --accent:#8aa0ff;
+    --accent-soft:#1b2340; --good:#4cc98a; --good-soft:#10281c; --bad:#ff8a7a; --bad-soft:#2a1512; --warn:#e0923f; color-scheme:dark; }
+  *{box-sizing:border-box;} body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;}
+  .wrap{max-width:900px;margin:0 auto;padding:24px 16px 72px;}
+  .kicker{font:600 12px/1.4 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0 0 10px;}
+  h1{font-size:clamp(26px,5vw,40px);line-height:1.08;margin:0 0 12px;text-wrap:balance;letter-spacing:-.02em;}
+  .lede{font-size:clamp(16px,2.4vw,19px);color:var(--muted);margin:0 0 8px;max-width:64ch;} a{color:var(--accent);}
+  .selfcheck{display:flex;align-items:center;gap:10px;margin:20px 0;padding:12px 16px;border:1px solid var(--line);border-radius:12px;background:var(--good-soft);font:600 14px/1.4 var(--sans);}
+  .selfcheck .dot{width:10px;height:10px;border-radius:50%;background:var(--good);flex:none;} .selfcheck.bad{background:var(--bad-soft);} .selfcheck.bad .dot{background:var(--bad);}
+  section{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;margin:20px 0;} h2{font-size:20px;margin:0 0 6px;letter-spacing:-.01em;} .sub{color:var(--muted);font-size:14px;margin:0 0 16px;}
+  table{border-collapse:collapse;width:100%;font-size:14px;} th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);} th{color:var(--muted);font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;}
+  td.n{font-family:var(--mono);font-variant-numeric:tabular-nums;} .tag{font:600 11px var(--mono);padding:3px 8px;border-radius:999px;} .tag.keep{background:var(--good-soft);color:var(--good);} .tag.drop{background:var(--bad-soft);color:var(--bad);}
+  .bar{height:8px;border-radius:4px;background:var(--accent);display:inline-block;vertical-align:middle;}
+  .claims li{margin:7px 0;} .claims .ok{color:var(--good);font-weight:700;font-family:var(--mono);}
+  .note{font-size:13.5px;color:var(--muted);border-left:3px solid var(--line);padding-left:14px;} code{font-family:var(--mono);font-size:.92em;background:var(--accent-soft);padding:1px 5px;border-radius:5px;}
+  footer{color:var(--muted);font-size:13px;margin-top:28px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="kicker">Pattern organs · #5 core · sovereign</p>
+  <h1>A pattern survives only if it generalises</h1>
+  <p class="lede">Give the forge a domain's cases. It proposes simple patterns from a training split, then keeps <strong>only</strong> the ones that still predict a <strong>held-out</strong> split — graded by balanced accuracy, never an LLM judge. Overfit patterns die on data they never saw. Re-derived live in your browser from the gated kernel.</p>
+
+  <div class="selfcheck" id="selfcheck"><span class="dot"></span><span id="sc">Re-deriving from the kernel…</span></div>
+
+  <section>
+    <h2>Domain A — a real signal buried in noise</h2>
+    <p class="sub">Feature 0 truly drives the label; features 1 &amp; 2 are noise. The forge grades every proposed pattern on held-out data. <span class="tag keep">keep</span> = beat the bar; <span class="tag drop">drop</span> = failed to generalise.</p>
+    <table id="signal"><thead><tr><th>pattern</th><th>train BA</th><th>held-out BA</th><th>verdict</th></tr></thead><tbody></tbody></table>
+  </section>
+
+  <section>
+    <h2>Domain B — no real pattern (an overfit trap)</h2>
+    <p class="sub">A feature that matches the label early (training) then flips late (held-out). It looks great on train and dies on held-out — exactly the trap pattern-finding usually falls into.</p>
+    <table id="overfit"><thead><tr><th>pattern</th><th>train BA</th><th>held-out BA</th><th>verdict</th></tr></thead><tbody></tbody></table>
+    <p class="sub" id="overfit-summary" style="margin-top:12px"></p>
+  </section>
+
+  <section>
+    <h2>The sealed claims</h2>
+    <p class="sub">Pre-registered in <code>predictions.json</code> before measurement; checked live against the kernel now.</p>
+    <ul class="claims" id="claims"></ul>
+  </section>
+
+  <section>
+    <h2>Honest scope</h2>
+    <p class="note">This is the <strong>core</strong> of Pattern organs #5: the held-out, rule-graded survival test that stops pattern-finding being theatre. The fuller vision — an LLM proposing richer candidate patterns, <code>kard-evolve</code> breeding the survivors, the observer loop rewriting them, and shipping a pattern book + a minted small model + a Deck card — are stages built on top of this, flagged, not yet claimed. What's proven here: patterns only survive if they generalise.</p>
+  </section>
+
+  <footer>Kernel: <code>pattern.mjs</code> — mutation-witnessed (score 1.0), fuzz-gated, sealed. Source: <a href="https://github.com/sjgant80-hub/pattern-forge">github.com/sjgant80-hub/pattern-forge</a>. Built by Kar · AI-Native Solutions.</footer>
+</div>
+
+<script type="module">
+  import { forge } from './pattern.mjs';
+
+  const signalDomain = (n = 30) => { const c = []; for (let i = 0; i < n; i++) c.push({ x: [i % 10, (i * 7) % 10, (i * 3 + 1) % 10], y: i % 10 >= 5 ? 1 : 0 }); return c; };
+  const overfitDomain = (n = 30) => { const c = []; for (let i = 0; i < n; i++) { const y = i % 2; c.push({ x: [i % 3, i < 20 ? y : 1 - y], y }); } return c; };
+
+  const fmtStump = (s) => `x[${s.feature}] ${s.dir === -1 ? '≤' : '≥'} ${s.threshold}`;
+  const ba = (v) => `<span class="bar" style="width:${Math.round(v * 60)}px"></span> <span class="n">${v.toFixed(3)}</span>`;
+  const row = (s, bar) => {
+    const keep = s.testBA >= bar;
+    return `<tr><td class="n">${fmtStump(s)}</td><td class="n">${s.trainBA.toFixed(3)}</td><td>${ba(s.testBA)}</td><td><span class="tag ${keep ? 'keep' : 'drop'}">${keep ? 'keep' : 'drop'}</span></td></tr>`;
+  };
+
+  const rA = forge(signalDomain(30), { holdoutFrac: 1 / 3, bar: 0.75 });
+  document.querySelector('#signal tbody').innerHTML = rA.proposed
+    .sort((a, b) => b.testBA - a.testBA).map((s) => row(s, rA.bar)).join('');
+
+  const rB = forge(overfitDomain(30), { holdoutFrac: 1 / 3, bar: 0.75 });
+  document.querySelector('#overfit tbody').innerHTML = rB.proposed
+    .sort((a, b) => b.testBA - a.testBA).map((s) => row(s, rB.bar)).join('');
+  document.getElementById('overfit-summary').innerHTML =
+    `<strong>${rB.survivors.length} survivors</strong> — the forge refuses to certify a pattern that only fit the training data.`;
+
+  // derived facts + self-check
+  const sig = rA.survivors.find((s) => s.feature === 0);
+  const m = {
+    signalTestBA: sig ? Math.round(sig.testBA * 1e4) / 1e4 : 0,
+    noiseRejected: rA.proposed.filter((s) => s.feature !== 0 && s.testBA < rA.bar).length,
+    highConfidenceSurvivors: rA.survivors.filter((s) => s.testBA > 0.9).length,
+    overfitSurvivors: rB.survivors.length,
+  };
+  let allPass = true;
+  try {
+    const preds = await fetch('./predictions.json').then((r) => r.json());
+    const holds = (expr) => { const { signalTestBA, noiseRejected, highConfidenceSurvivors, overfitSurvivors } = m; try { return !!eval(expr); } catch { return false; } };
+    document.getElementById('claims').innerHTML = preds.claims.map((c) => {
+      const p = holds(c.check); if (!p) allPass = false;
+      return `<li><span class="ok">${p ? '✓' : '✗'}</span> ${c.text} <code>${c.check}</code></li>`;
+    }).join('');
+  } catch { document.getElementById('claims').innerHTML = '<li class="note">predictions.json not reachable here — the tables above are still live from the kernel.</li>'; }
+
+  const ok = m.signalTestBA === 1 && m.noiseRejected >= 1 && m.overfitSurvivors === 0 && m.highConfidenceSurvivors === 1 && allPass;
+  const sc = document.getElementById('selfcheck');
+  document.getElementById('sc').innerHTML = ok
+    ? `Self-check ✓ — re-derived from the kernel: the signal generalises (held-out BA ${m.signalTestBA}), overfit survivors ${m.overfitSurvivors}, a non-generalising pattern was rejected.`
+    : 'Self-check mismatch — do not trust this build.';
+  if (!ok) sc.classList.add('bad');
+</script>
+</body>
+</html>

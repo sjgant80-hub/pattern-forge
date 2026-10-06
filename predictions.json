@@ -1,0 +1,17 @@
+{
+  "build": "pattern-forge",
+  "what": "The core of Pattern organs #5: propose patterns from a domain's cases, keep only those that predict HELD-OUT cases graded by a deterministic rule (balanced accuracy). A pattern survives only if it generalises.",
+  "sealed_before_measurement": true,
+  "claims": [
+    { "id": "P1", "text": "The real signal pattern generalises — it scores perfectly on held-out data", "check": "signalTestBA === 1" },
+    { "id": "P2", "text": "A non-generalising pattern is REJECTED on the held-out split", "check": "noiseRejected >= 1" },
+    { "id": "P3", "text": "Overfit is caught — on a domain with no real pattern, NOTHING clears the bar", "check": "overfitSurvivors === 0" },
+    { "id": "P4", "text": "The signal is the only high-confidence survivor (held-out BA > 0.9)", "check": "highConfidenceSurvivors === 1" }
+  ],
+  "expected": {
+    "signalTestBA": 1,
+    "noiseRejected": 1,
+    "highConfidenceSurvivors": 1,
+    "overfitSurvivors": 0
+  }
+}

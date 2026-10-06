@@ -1,0 +1,8 @@
+{
+  "name": "pattern-forge",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "description": "Pattern organs #5 core: propose patterns from a domain's cases, keep only those that predict held-out cases graded by a rule. Kernel-backed, witnessed, sealed.",
+  "scripts": { "test": "node --test" }
+}

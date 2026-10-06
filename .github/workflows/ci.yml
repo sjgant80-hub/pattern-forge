@@ -1,0 +1,24 @@
+name: proof-of-play
+on:
+  push: { branches: [main, master] }
+  pull_request:
+  workflow_dispatch:
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Unit tests
+        run: node --test
+      - name: Mutation gate — the kernel must be CLEAN
+        run: node tools/witness.mjs mutate pattern.mjs --test node --test
+      - name: Fuzz gate — the never-throw boundary
+        run: |
+          set -e
+          for fn in splitCases predict balancedAccuracy proposeStumps forge; do
+            node tools/witness.mjs fuzz pattern.mjs "$fn"
+          done
+      - name: Re-derive the sealed facts and check against predictions.json
+        run: node ci-verify.mjs
