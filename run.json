@@ -16,7 +16,9 @@
     "llmBestStumpTestBA": 0.7684,
     "observerBestKind": "compare",
     "observerUnguidedPos": 3,
-    "observerGuidedPos": 1
+    "observerGuidedPos": 1,
+    "bookSize": 3,
+    "bookPatterns": "x0 ≥ 5 | x0 ≥ 5 AND x1 ≥ 5 | x0 > x1"
   },
   "claims": [
     {
@@ -84,8 +86,14 @@
       "text": "Observer-guided search surfaces the generalising rule EARLIER (position 1 vs 3 unguided)",
       "check": "observerGuidedPos === 1 && observerUnguidedPos === 3 && observerGuidedPos < observerUnguidedPos",
       "pass": true
+    },
+    {
+      "id": "P12",
+      "text": "The pattern book catalogs exactly the three generalising patterns found across the domains",
+      "check": "bookSize === 3",
+      "pass": true
     }
   ],
   "allPass": true,
-  "note": "Re-derived from pattern/breed/propose/observer kernels; ci-verify.mjs re-checks on the runner."
+  "note": "Full #5 organ: find/breed/propose/observe/book, re-derived; ci-verify.mjs re-checks on the runner."
 }
