@@ -1,0 +1,37 @@
+{
+  "build": "pattern-forge",
+  "measured": {
+    "signalTestBA": 1,
+    "noiseRejected": 1,
+    "highConfidenceSurvivors": 1,
+    "overfitSurvivors": 0
+  },
+  "claims": [
+    {
+      "id": "P1",
+      "text": "The real signal pattern generalises — it scores perfectly on held-out data",
+      "check": "signalTestBA === 1",
+      "pass": true
+    },
+    {
+      "id": "P2",
+      "text": "A non-generalising pattern is REJECTED on the held-out split",
+      "check": "noiseRejected >= 1",
+      "pass": true
+    },
+    {
+      "id": "P3",
+      "text": "Overfit is caught — on a domain with no real pattern, NOTHING clears the bar",
+      "check": "overfitSurvivors === 0",
+      "pass": true
+    },
+    {
+      "id": "P4",
+      "text": "The signal is the only high-confidence survivor (held-out BA > 0.9)",
+      "check": "highConfidenceSurvivors === 1",
+      "pass": true
+    }
+  ],
+  "allPass": true,
+  "note": "Re-derived from the sealed pattern.mjs; ci-verify.mjs re-checks on the runner."
+}
