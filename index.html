@@ -83,6 +83,12 @@
   </section>
 
   <section>
+    <h2>Mint it — own the model</h2>
+    <p class="sub">The validated classifier is a tiny, owned model. Minting it is gated by <a href="https://sjgant80-hub.github.io/fallforgemint/">fallforgemint</a>'s own rule — a node mints only on a certified BEATS receipt — and its economics are fallforgemint's own own-vs-rent calculator.</p>
+    <div id="mint"></div>
+  </section>
+
+  <section>
     <h2>The sealed claims</h2>
     <p class="sub">Pre-registered in <code>predictions.json</code> before measurement; checked live against the kernel now.</p>
     <ul class="claims" id="claims"></ul>
@@ -102,6 +108,7 @@
   import { validate, baRule } from './propose.mjs';
   import { observe, reprioritise, firstSurvivorPosition } from './observer.mjs';
   import { compileBook } from './book.mjs';
+  import { mint, verifyMint, economics } from './mint.mjs';
 
   const signalDomain = (n = 30) => { const c = []; for (let i = 0; i < n; i++) c.push({ x: [i % 10, (i * 7) % 10, (i * 3 + 1) % 10], y: i % 10 >= 5 ? 1 : 0 }); return c; };
   const overfitDomain = (n = 30) => { const c = []; for (let i = 0; i < n; i++) { const y = i % 2; c.push({ x: [i % 3, i < 20 ? y : 1 - y], y }); } return c; };
@@ -176,6 +183,21 @@
   document.querySelector('#book tbody').innerHTML = book.map((e) =>
     `<tr><td>${e.domain}</td><td class="n">${e.pattern}</td><td class="n">${e.heldOut}</td><td>${e.source}</td></tr>`).join('');
 
+  // mint the comparison classifier as an owned model, gated by fallforgemint's rule
+  let mm = { minted: false, bytes: 0, body: '', fingerprint: '' };
+  let econVerdict = '—';
+  if (rD && rD.survivors[0]) {
+    const bestStump = rD.graded.filter((g) => g.rule.kind === 'stump').reduce((mx, g) => Math.max(mx, g.testBA), 0);
+    mm = mint(rD.survivors[0].rule, rD.survivors[0].testBA, bestStump);
+    econVerdict = economics({ callsPerMonth: 100000, tokensPerCall: 50, rentPerMillion: 3, setupCost: 0, runPerMonth: 0 }).verdict;
+    document.getElementById('mint').innerHTML = `
+      <div class="op" style="margin-bottom:10px"><b>the owned model</b><p style="color:var(--ink)"><code>${mm.body}</code> — ${mm.bytes} bytes, runs locally, no per-call bill. Fingerprint <code>${mm.fingerprint}</code> ${verifyMint(mm) ? '✓ verifies' : '✗'}.</p></div>
+      <div class="rank">
+        <div class="rrow" style="display:grid;grid-template-columns:1.6fr 3fr auto;gap:10px;align-items:center"><span>mint verdict</span><span class="bar" style="width:${mm.minted ? 100 : 5}%;background:${mm.minted ? 'var(--good)' : 'var(--bad)'}"></span><span class="n">${mm.minted ? 'MINTED' : 'not minted'} · beats base ${mm.receipt.base}→${mm.receipt.candidate}</span></div>
+        <div class="rrow" style="display:grid;grid-template-columns:1.6fr 3fr auto;gap:10px;align-items:center"><span>own vs rent</span><span class="bar" style="width:100%"></span><span class="n">${econVerdict}</span></div>
+      </div>`;
+  }
+
   // derived facts + self-check
   const sig = rA.survivors.find((s) => s.feature === 0);
   const m = {
@@ -196,11 +218,15 @@
     observerUnguidedPos: obs.unguided,
     observerGuidedPos: obs.guided,
     bookSize: book.length,
+    mintMinted: mm.minted === true,
+    mintBytes: mm.bytes,
+    mintFingerprintOk: verifyMint(mm),
+    mintEconVerdict: econVerdict,
   };
   let allPass = true;
   try {
     const preds = await fetch('./predictions.json').then((r) => r.json());
-    const holds = (expr) => { const { signalTestBA, noiseRejected, highConfidenceSurvivors, overfitSurvivors, breedSingleBestTestBA, breedChampionTestBA, breedChampionTerms, breedImproved, llmProposed, llmSurvivors, llmChampionKind, llmChampionTestBA, llmBestStumpTestBA, observerBestKind, observerUnguidedPos, observerGuidedPos, bookSize, bookPatterns } = m; try { return !!eval(expr); } catch { return false; } };
+    const holds = (expr) => { const { signalTestBA, noiseRejected, highConfidenceSurvivors, overfitSurvivors, breedSingleBestTestBA, breedChampionTestBA, breedChampionTerms, breedImproved, llmProposed, llmSurvivors, llmChampionKind, llmChampionTestBA, llmBestStumpTestBA, observerBestKind, observerUnguidedPos, observerGuidedPos, bookSize, bookPatterns, mintMinted, mintBytes, mintFingerprintOk, mintEconVerdict } = m; try { return !!eval(expr); } catch { return false; } };
     document.getElementById('claims').innerHTML = preds.claims.map((c) => {
       const p = holds(c.check); if (!p) allPass = false;
       return `<li><span class="ok">${p ? '✓' : '✗'}</span> ${c.text} <code>${c.check}</code></li>`;
@@ -210,10 +236,11 @@
   const ok = m.signalTestBA === 1 && m.noiseRejected >= 1 && m.overfitSurvivors === 0 && m.highConfidenceSurvivors === 1
              && m.breedImproved === true && m.breedChampionTestBA === 1
              && m.llmSurvivors === 1 && m.llmChampionKind === 'compare' && m.llmChampionTestBA === 1
-             && obs.best === 'compare' && obs.guided === 1 && obs.guided < obs.unguided && m.bookSize === 3 && allPass;
+             && obs.best === 'compare' && obs.guided === 1 && obs.guided < obs.unguided && m.bookSize === 3
+             && m.mintMinted === true && m.mintFingerprintOk === true && m.mintEconVerdict === 'OWN_WINS' && allPass;
   const sc = document.getElementById('selfcheck');
   document.getElementById('sc').innerHTML = ok
-    ? `Self-check ✓ — re-derived live: the signal generalises (BA ${m.signalTestBA}), breeding improved ${m.breedSingleBestTestBA} → ${m.breedChampionTestBA}, the local model's one generalising proposal (${m.llmChampionKind}) survived held-out at ${m.llmChampionTestBA}, and the observer moved the winner from position ${obs.unguided} to ${obs.guided}, and the book catalogs ${m.bookSize} generalising patterns.`
+    ? `Self-check ✓ — re-derived live: the signal generalises (BA ${m.signalTestBA}), breeding improved ${m.breedSingleBestTestBA} → ${m.breedChampionTestBA}, the local model's one generalising proposal (${m.llmChampionKind}) survived held-out at ${m.llmChampionTestBA}, and the observer moved the winner from position ${obs.unguided} to ${obs.guided}, the book catalogs ${m.bookSize} generalising patterns, and the classifier mints as a ${m.mintBytes}-byte owned model (${m.mintEconVerdict}).`
     : 'Self-check mismatch — do not trust this build.';
   if (!ok) sc.classList.add('bad');
 </script>

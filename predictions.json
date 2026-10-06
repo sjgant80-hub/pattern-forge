@@ -14,7 +14,9 @@
     { "id": "P9", "text": "Every proposed threshold stump FAILS held-out — the win needed a richer rule form", "check": "llmBestStumpTestBA < 0.9" },
     { "id": "P10", "text": "The observer loop learns which rule form generalises (compare) from the run it watched", "check": "observerBestKind === 'compare'" },
     { "id": "P11", "text": "Observer-guided search surfaces the generalising rule EARLIER (position 1 vs 3 unguided)", "check": "observerGuidedPos === 1 && observerUnguidedPos === 3 && observerGuidedPos < observerUnguidedPos" },
-    { "id": "P12", "text": "The pattern book catalogs exactly the three generalising patterns found across the domains", "check": "bookSize === 3" }
+    { "id": "P12", "text": "The pattern book catalogs exactly the three generalising patterns found across the domains", "check": "bookSize === 3" },
+    { "id": "P13", "text": "The validated classifier MINTS — it beats its base (certified), and the owned model is tiny (bytes, not gigabytes)", "check": "mintMinted === true && mintBytes > 0 && mintBytes < 40" },
+    { "id": "P14", "text": "The minted model's fingerprint verifies, and owning it beats renting a frontier model per call", "check": "mintFingerprintOk === true && mintEconVerdict === 'OWN_WINS'" }
   ],
   "expected": {
     "signalTestBA": 1,
@@ -34,6 +36,10 @@
     "observerUnguidedPos": 3,
     "observerGuidedPos": 1,
     "bookSize": 3,
-    "bookPatterns": "x0 ≥ 5 | x0 ≥ 5 AND x1 ≥ 5 | x0 > x1"
+    "bookPatterns": "x0 ≥ 5 | x0 ≥ 5 AND x1 ≥ 5 | x0 > x1",
+    "mintMinted": true,
+    "mintBytes": 20,
+    "mintFingerprintOk": true,
+    "mintEconVerdict": "OWN_WINS"
   }
 }

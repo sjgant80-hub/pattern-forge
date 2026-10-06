@@ -5,6 +5,7 @@ import { breed } from './breed.mjs';
 import { validate, baRule } from './propose.mjs';
 import { observe, bestKind, reprioritise, firstSurvivorPosition } from './observer.mjs';
 import { compileBook, renderRule } from './book.mjs';
+import { mint, verifyMint, economics } from './mint.mjs';
 import { readFileSync } from 'node:fs';
 
 // compile the pattern book from the organ's real results across its domains
@@ -61,6 +62,9 @@ export function derive() {
   const unguidedPos = firstSurvivorPosition(proposals.rules, grade, 0.9);
   const guidedPos = firstSurvivorPosition(reprioritise(proposals.rules, prior), grade, 0.9);
   const book = buildBook({ f: r, b, v });
+  // mint the comparison classifier as an owned model, gated by fallforgemint's own rule
+  const mm = champ ? mint(champ.rule, champ.testBA, bestStump) : { minted: false, bytes: 0 };
+  const econ = economics({ callsPerMonth: 100000, tokensPerCall: 50, rentPerMillion: 3, setupCost: 0, runPerMonth: 0 });
   return {
     signalTestBA: sig ? r4(sig.testBA) : 0,
     noiseRejected: r.proposed.filter((s) => s.feature !== 0 && s.testBA < r.bar).length,
@@ -80,6 +84,10 @@ export function derive() {
     observerGuidedPos: guidedPos,
     bookSize: book.length,
     bookPatterns: book.map((e) => e.pattern).join(' | '),
+    mintMinted: mm.minted === true,
+    mintBytes: mm.bytes,
+    mintFingerprintOk: champ ? verifyMint(mm) : false,
+    mintEconVerdict: econ.verdict,
   };
 }
 
@@ -91,7 +99,7 @@ if (typeof process !== 'undefined' && process.argv && process.argv[1] && process
     if (m[k] !== v) { console.error(`MISMATCH ${k}: expected ${v}, got ${m[k]}`); fail++; }
   }
   const holds = (expr) => {
-    const { signalTestBA, noiseRejected, highConfidenceSurvivors, overfitSurvivors, breedSingleBestTestBA, breedChampionTestBA, breedChampionTerms, breedImproved, llmProposed, llmSurvivors, llmChampionKind, llmChampionTestBA, llmBestStumpTestBA, observerBestKind, observerUnguidedPos, observerGuidedPos, bookSize, bookPatterns } = m;
+    const { signalTestBA, noiseRejected, highConfidenceSurvivors, overfitSurvivors, breedSingleBestTestBA, breedChampionTestBA, breedChampionTerms, breedImproved, llmProposed, llmSurvivors, llmChampionKind, llmChampionTestBA, llmBestStumpTestBA, observerBestKind, observerUnguidedPos, observerGuidedPos, bookSize, bookPatterns, mintMinted, mintBytes, mintFingerprintOk, mintEconVerdict } = m;
     // eslint-disable-next-line no-eval
     try { return !!eval(expr); } catch { return false; }
   };
