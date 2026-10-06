@@ -64,6 +64,13 @@
   </section>
 
   <section>
+    <h2>The local model proposes — the gate keeps only what generalises</h2>
+    <p class="sub">Domain D: y = (x0 &gt; x1) — a <em>feature comparison</em> no single threshold can catch. A sovereign local model (<code>qwen2.5:7b</code>, on your own metal) proposed these rules from 12 sample cases; the held-out gate graded each. <span class="tag keep">keep</span> survives; <span class="tag drop">drop</span> fails to generalise.</p>
+    <table id="llm"><thead><tr><th>proposed rule</th><th>train BA</th><th>held-out BA</th><th>verdict</th></tr></thead><tbody></tbody></table>
+    <p class="sub" id="llm-summary" style="margin-top:12px"></p>
+  </section>
+
+  <section>
     <h2>The sealed claims</h2>
     <p class="sub">Pre-registered in <code>predictions.json</code> before measurement; checked live against the kernel now.</p>
     <ul class="claims" id="claims"></ul>
@@ -80,10 +87,13 @@
 <script type="module">
   import { forge } from './pattern.mjs';
   import { breed } from './breed.mjs';
+  import { validate } from './propose.mjs';
 
   const signalDomain = (n = 30) => { const c = []; for (let i = 0; i < n; i++) c.push({ x: [i % 10, (i * 7) % 10, (i * 3 + 1) % 10], y: i % 10 >= 5 ? 1 : 0 }); return c; };
   const overfitDomain = (n = 30) => { const c = []; for (let i = 0; i < n; i++) { const y = i % 2; c.push({ x: [i % 3, i < 20 ? y : 1 - y], y }); } return c; };
   const andDomain = (n = 100) => { const c = []; for (let i = 0; i < n; i++) c.push({ x: [i % 10, Math.floor(i / 10), (i * 7) % 10], y: (i % 10 >= 5 && Math.floor(i / 10) >= 5) ? 1 : 0 }); return c; };
+  const compareDomain = (n = 100) => { const c = []; for (let i = 0; i < n; i++) c.push({ x: [i % 10, Math.floor(i / 10), (i * 7) % 10], y: (i % 10) > Math.floor(i / 10) ? 1 : 0 }); return c; };
+  const ruleStr = (r) => r.kind === 'compare' ? `x[${r.a}] ${r.op} x[${r.b}]` : r.kind === 'range' ? `${r.lo} ≤ x[${r.feature}] ≤ ${r.hi}` : `x[${r.feature}] ${r.dir === -1 ? '≤' : '≥'} ${r.threshold}`;
 
   const fmtStump = (s) => `x[${s.feature}] ${s.dir === -1 ? '≤' : '≥'} ${s.threshold}`;
   const ba = (v) => `<span class="bar" style="width:${Math.round(v * 60)}px"></span> <span class="n">${v.toFixed(3)}</span>`;
@@ -114,6 +124,20 @@
     </div>
     <p class="sub" style="margin-top:12px">Champion: <code>${champStr}</code> — ${rC.champion.terms} terms, train ${rC.champion.trainBA.toFixed(3)} = held-out ${rC.champion.testBA.toFixed(3)} (no overfit). ${rC.improvedHeldOut ? 'Breeding <strong>improved</strong> held-out over every single feature.' : 'No improvement over a single feature here.'}</p>`;
 
+  // the local model's sealed proposals, validated on held-out
+  let rD = null;
+  try {
+    const prop = await fetch('./proposals.json').then((r) => r.json());
+    rD = validate(prop.rules, compareDomain(100), { holdoutFrac: 1 / 3, bar: 0.9 });
+    document.querySelector('#llm tbody').innerHTML = rD.graded
+      .slice().sort((a, b) => b.testBA - a.testBA)
+      .map((g) => { const keep = g.testBA >= rD.bar; return `<tr><td class="n">${ruleStr(g.rule)}</td><td class="n">${g.trainBA.toFixed(3)}</td><td>${ba(g.testBA)}</td><td><span class="tag ${keep ? 'keep' : 'drop'}">${keep ? 'keep' : 'drop'}</span></td></tr>`; }).join('');
+    const champ = rD.survivors[0];
+    document.getElementById('llm-summary').innerHTML = champ
+      ? `The model proposed ${rD.graded.length} rules; <strong>${rD.survivors.length}</strong> cleared the held-out bar — <code>${ruleStr(champ.rule)}</code> at held-out ${champ.testBA.toFixed(3)}. Every proposed threshold rule failed: a comparison between features is a form no single stump can express.`
+      : `The model proposed ${rD.graded.length} rules; none cleared the held-out bar.`;
+  } catch { document.getElementById('llm-summary').textContent = 'proposals.json not reachable here.'; }
+
   // derived facts + self-check
   const sig = rA.survivors.find((s) => s.feature === 0);
   const m = {
@@ -125,11 +149,16 @@
     breedChampionTestBA: rC.champion ? rC.champion.testBA : 0,
     breedChampionTerms: rC.champion ? rC.champion.terms : 0,
     breedImproved: rC.improvedHeldOut,
+    llmProposed: rD ? rD.graded.length : 0,
+    llmSurvivors: rD ? rD.survivors.length : 0,
+    llmChampionKind: rD && rD.survivors[0] ? rD.survivors[0].rule.kind : 'none',
+    llmChampionTestBA: rD && rD.survivors[0] ? rD.survivors[0].testBA : 0,
+    llmBestStumpTestBA: rD ? rD.graded.filter((g) => g.rule.kind === 'stump').reduce((mx, g) => Math.max(mx, g.testBA), 0) : 1,
   };
   let allPass = true;
   try {
     const preds = await fetch('./predictions.json').then((r) => r.json());
-    const holds = (expr) => { const { signalTestBA, noiseRejected, highConfidenceSurvivors, overfitSurvivors, breedSingleBestTestBA, breedChampionTestBA, breedChampionTerms, breedImproved } = m; try { return !!eval(expr); } catch { return false; } };
+    const holds = (expr) => { const { signalTestBA, noiseRejected, highConfidenceSurvivors, overfitSurvivors, breedSingleBestTestBA, breedChampionTestBA, breedChampionTerms, breedImproved, llmProposed, llmSurvivors, llmChampionKind, llmChampionTestBA, llmBestStumpTestBA } = m; try { return !!eval(expr); } catch { return false; } };
     document.getElementById('claims').innerHTML = preds.claims.map((c) => {
       const p = holds(c.check); if (!p) allPass = false;
       return `<li><span class="ok">${p ? '✓' : '✗'}</span> ${c.text} <code>${c.check}</code></li>`;
@@ -137,10 +166,11 @@
   } catch { document.getElementById('claims').innerHTML = '<li class="note">predictions.json not reachable here — the tables above are still live from the kernel.</li>'; }
 
   const ok = m.signalTestBA === 1 && m.noiseRejected >= 1 && m.overfitSurvivors === 0 && m.highConfidenceSurvivors === 1
-             && m.breedImproved === true && m.breedChampionTestBA === 1 && allPass;
+             && m.breedImproved === true && m.breedChampionTestBA === 1
+             && m.llmSurvivors === 1 && m.llmChampionKind === 'compare' && m.llmChampionTestBA === 1 && allPass;
   const sc = document.getElementById('selfcheck');
   document.getElementById('sc').innerHTML = ok
-    ? `Self-check ✓ — re-derived from the kernel: the signal generalises (held-out BA ${m.signalTestBA}), overfit survivors ${m.overfitSurvivors}, and breeding improved held-out ${m.breedSingleBestTestBA} → ${m.breedChampionTestBA}.`
+    ? `Self-check ✓ — re-derived live: the signal generalises (BA ${m.signalTestBA}), breeding improved ${m.breedSingleBestTestBA} → ${m.breedChampionTestBA}, and the local model's one generalising proposal (${m.llmChampionKind}) survived held-out at ${m.llmChampionTestBA}.`
     : 'Self-check mismatch — do not trust this build.';
   if (!ok) sc.classList.add('bad');
 </script>

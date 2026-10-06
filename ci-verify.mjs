@@ -2,7 +2,15 @@
 // match predictions.json exactly. predictions.json is committed before run.json; CI recomputes here.
 import { forge } from './pattern.mjs';
 import { breed } from './breed.mjs';
+import { validate } from './propose.mjs';
 import { readFileSync } from 'node:fs';
+
+// the comparison domain the local model proposed rules for: y = (x0 > x1); x2 noise
+export function compareDomain(n = 100) {
+  const c = [];
+  for (let i = 0; i < n; i++) c.push({ x: [i % 10, Math.floor(i / 10), (i * 7) % 10], y: (i % 10) > Math.floor(i / 10) ? 1 : 0 });
+  return c;
+}
 
 // a conjunction domain: y = (x0>=5 AND x1>=5); no single feature separates it — breeding must.
 export function andDomain(n = 100) {
@@ -29,6 +37,11 @@ export function derive() {
   const sig = r.survivors.find((s) => s.feature === 0);
   const o = forge(overfitDomain(30), { holdoutFrac: 1 / 3, bar: 0.75 });
   const b = breed(andDomain(100), { generations: 3, keep: 8, maxTerms: 3 });
+  // the local model's SEALED proposals, validated on held-out (deterministic re-check of a frozen input)
+  const proposals = JSON.parse(readFileSync(new URL('./proposals.json', import.meta.url), 'utf8'));
+  const v = validate(proposals.rules, compareDomain(100), { holdoutFrac: 1 / 3, bar: 0.9 });
+  const champ = v.survivors[0];
+  const bestStump = v.graded.filter((g) => g.rule.kind === 'stump').reduce((m, g) => Math.max(m, g.testBA), 0);
   return {
     signalTestBA: sig ? r4(sig.testBA) : 0,
     noiseRejected: r.proposed.filter((s) => s.feature !== 0 && s.testBA < r.bar).length,
@@ -38,6 +51,11 @@ export function derive() {
     breedChampionTestBA: b.champion ? b.champion.testBA : 0,
     breedChampionTerms: b.champion ? b.champion.terms : 0,
     breedImproved: b.improvedHeldOut,
+    llmProposed: v.graded.length,
+    llmSurvivors: v.survivors.length,
+    llmChampionKind: champ ? champ.rule.kind : 'none',
+    llmChampionTestBA: champ ? champ.testBA : 0,
+    llmBestStumpTestBA: r4(bestStump),
   };
 }
 
@@ -49,7 +67,7 @@ if (typeof process !== 'undefined' && process.argv && process.argv[1] && process
     if (m[k] !== v) { console.error(`MISMATCH ${k}: expected ${v}, got ${m[k]}`); fail++; }
   }
   const holds = (expr) => {
-    const { signalTestBA, noiseRejected, highConfidenceSurvivors, overfitSurvivors, breedSingleBestTestBA, breedChampionTestBA, breedChampionTerms, breedImproved } = m;
+    const { signalTestBA, noiseRejected, highConfidenceSurvivors, overfitSurvivors, breedSingleBestTestBA, breedChampionTestBA, breedChampionTerms, breedImproved, llmProposed, llmSurvivors, llmChampionKind, llmChampionTestBA, llmBestStumpTestBA } = m;
     // eslint-disable-next-line no-eval
     try { return !!eval(expr); } catch { return false; }
   };

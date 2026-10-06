@@ -1,0 +1,11 @@
+{
+  "source": "local qwen2.5:7b via Ollama (FallCore), proposed 2026-10-06 from 12 sample cases — frozen input",
+  "domain": "y = (x0 > x1); x2 is noise",
+  "rules": [
+    {"kind":"stump","feature":0,"threshold":5,"dir":1},
+    {"kind":"stump","feature":1,"threshold":5,"dir":1},
+    {"kind":"compare","a":0,"b":1,"op":">"},
+    {"kind":"range","feature":0,"lo":2,"hi":5},
+    {"kind":"compare","a":1,"b":2,"op":">"}
+  ]
+}

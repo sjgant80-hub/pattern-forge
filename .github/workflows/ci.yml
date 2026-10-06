@@ -17,6 +17,7 @@ jobs:
           set -e
           node tools/witness.mjs mutate pattern.mjs --test node --test
           node tools/witness.mjs mutate breed.mjs --test node --test
+          node tools/witness.mjs mutate propose.mjs --test node --test
       - name: Fuzz gate — the never-throw boundary
         run: |
           set -e
@@ -25,6 +26,9 @@ jobs:
           done
           for fn in predictCompound baCompound breed; do
             node tools/witness.mjs fuzz breed.mjs "$fn"
+          done
+          for fn in evalRule baRule validate; do
+            node tools/witness.mjs fuzz propose.mjs "$fn"
           done
       - name: Re-derive the sealed facts and check against predictions.json
         run: node ci-verify.mjs
