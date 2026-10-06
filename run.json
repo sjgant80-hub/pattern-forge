@@ -18,7 +18,11 @@
     "observerUnguidedPos": 3,
     "observerGuidedPos": 1,
     "bookSize": 3,
-    "bookPatterns": "x0 ≥ 5 | x0 ≥ 5 AND x1 ≥ 5 | x0 > x1"
+    "bookPatterns": "x0 ≥ 5 | x0 ≥ 5 AND x1 ≥ 5 | x0 > x1",
+    "mintMinted": true,
+    "mintBytes": 20,
+    "mintFingerprintOk": true,
+    "mintEconVerdict": "OWN_WINS"
   },
   "claims": [
     {
@@ -92,8 +96,20 @@
       "text": "The pattern book catalogs exactly the three generalising patterns found across the domains",
       "check": "bookSize === 3",
       "pass": true
+    },
+    {
+      "id": "P13",
+      "text": "The validated classifier MINTS — it beats its base (certified), and the owned model is tiny (bytes, not gigabytes)",
+      "check": "mintMinted === true && mintBytes > 0 && mintBytes < 40",
+      "pass": true
+    },
+    {
+      "id": "P14",
+      "text": "The minted model's fingerprint verifies, and owning it beats renting a frontier model per call",
+      "check": "mintFingerprintOk === true && mintEconVerdict === 'OWN_WINS'",
+      "pass": true
     }
   ],
   "allPass": true,
-  "note": "Full #5 organ: find/breed/propose/observe/book, re-derived; ci-verify.mjs re-checks on the runner."
+  "note": "The complete #5 pattern organ: find/breed/propose/observe/book/mint. Re-derived; ci-verify.mjs re-checks on the runner."
 }
